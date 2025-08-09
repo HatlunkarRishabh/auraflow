@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
+import 'package:auraflow/screens/goals/widgets/goal_card.dart';
+import 'package:auraflow/screens/goals/goal_detail_screen.dart';
+
 class GoalListScreen extends StatelessWidget {
   const GoalListScreen({super.key});
 
@@ -12,9 +15,7 @@ class GoalListScreen extends StatelessWidget {
     final goalNotifier = context.read<GoalNotifier>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("My Goals"),
-      ),
+      appBar: AppBar(title: const Text("My Goals")),
       body: ValueListenableBuilder<Box<Goal>>(
         valueListenable: goalNotifier.goalsListenable,
         builder: (context, box, _) {
@@ -33,14 +34,17 @@ class GoalListScreen extends StatelessWidget {
             itemCount: goals.length,
             itemBuilder: (context, index) {
               final goal = goals[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  title: Text(goal.name),
-                  subtitle: LinearProgressIndicator(value: goal.progress),
-                  onTap: () {
-                  },
-                ),
+              return GoalCard(
+                goal: goal,
+                onTap: () {
+                  // This is the navigation logic.
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GoalDetailScreen(goal: goal),
+                    ),
+                  );
+                },
               );
             },
           );
@@ -56,7 +60,7 @@ class GoalListScreen extends StatelessWidget {
 
   void _showAddGoalDialog(BuildContext context) {
     final taskController = TextEditingController();
-    String colorHex = "FF9E9E9E"; 
+    String colorHex = "FF9E9E9E";
 
     showDialog(
       context: context,
@@ -78,9 +82,9 @@ class GoalListScreen extends StatelessWidget {
               onPressed: () {
                 if (taskController.text.isNotEmpty) {
                   context.read<GoalNotifier>().addGoal(
-                        name: taskController.text,
-                        colorHex: colorHex,
-                      );
+                    name: taskController.text,
+                    colorHex: colorHex,
+                  );
                   Navigator.pop(context);
                 }
               },
