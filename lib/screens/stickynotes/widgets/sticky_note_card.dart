@@ -1,7 +1,6 @@
 import 'package:auraflow/models/sticky_note.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:google_fonts/google_fonts.dart'; 
 import 'package:intl/intl.dart';
 
 class StickyNoteCard extends StatelessWidget {
