@@ -3,9 +3,9 @@ import 'package:auraflow/models/task.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+
 class GoalNotifier extends ChangeNotifier {
   final Box<Goal> _goalBox = Hive.box<Goal>('goals');
-
 
   ValueListenable<Box<Goal>> get goalsListenable => _goalBox.listenable();
 
@@ -14,25 +14,78 @@ class GoalNotifier extends ChangeNotifier {
     await _goalBox.add(newGoal);
   }
 
-  Future<void> updateGoal(Goal goal) async {
-    await goal.save();
-  }
-
   Future<void> deleteGoal(Goal goal) async {
+    final tasksToDelete = goal.tasks.toList();
+    for (final task in tasksToDelete) {
+      final subTasksToDelete = task.subTasks.toList();
+      for (final subTask in subTasksToDelete) {
+        await subTask.delete();
+      }
+      await task.delete();
+    }
     await goal.delete();
   }
-  
 
   Future<void> addTaskToGoal(Goal goal, Task task) async {
+    final taskBox = Hive.box<Task>('tasks');
+    await taskBox.add(task);
     goal.tasks.add(task);
-    await goal.save(); 
-  }
-  
-  Future<void> updateTask(Task task) async {
-     await task.save();
+    await goal.save();
+    notifyListeners(); 
   }
 
-  Future<void> deleteTask(Task task) async {
-     await task.delete();
+  Future<void> updateTask(Task task) async {
+  await task.save();
+
+  try {
+    final parentGoal = _goalBox.values.firstWhere(
+      (goal) => goal.tasks.contains(task),
+    );
+
+    final isCompleted = parentGoal.progress >= 1.0;
+
+    if (isCompleted && parentGoal.lastUpdatedTaskDate == null) {
+      parentGoal.lastUpdatedTaskDate = DateTime.now();
+    }
+    else if (!isCompleted && parentGoal.lastUpdatedTaskDate != null) {
+      parentGoal.lastUpdatedTaskDate = null;
+    }
+
+    await parentGoal.save();
+  } catch (e) {
+    debugPrint("Could not find parent goal for task update: $e");
+  }
+}
+
+Future<void> deleteTask(Task task) async {
+    final parentGoal = _goalBox.values.firstWhere(
+    (goal) => goal.tasks.contains(task),
+  );
+  
+  final subTasksToDelete = task.subTasks.toList();
+  for (final subTask in subTasksToDelete) {
+    await subTask.delete();
+  }
+  
+  await task.delete();
+  
+  await parentGoal.save();
+  notifyListeners();
+  }
+
+
+  Future<void> addSubTaskToTask(Task parentTask, SubTask subTask) async {
+    final subTaskBox = Hive.box<SubTask>('subtasks');
+    await subTaskBox.add(subTask);
+    parentTask.subTasks.add(subTask);
+    await parentTask.save(); 
+  }
+
+  Future<void> deleteSubTask(SubTask subTask) async {
+    final parentTask = Hive.box<Task>('tasks').values.firstWhere(
+      (task) => task.subTasks.contains(subTask)
+    );
+    await subTask.delete();
+    await parentTask.save(); 
   }
 }

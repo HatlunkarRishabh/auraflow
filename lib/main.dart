@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'notifiers/goal_notifier.dart';
 import 'notifiers/sticky_note_notifier.dart';
 import 'notifiers/theme_notifier.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
 
@@ -49,14 +50,8 @@ class AuraFlowApp extends StatelessWidget {
           return MaterialApp(
             title: 'AuraFlow',
             debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              brightness: Brightness.light,
-              colorSchemeSeed: themeNotifier.accentColor,
-            ),
-            darkTheme: ThemeData(
-              brightness: Brightness.dark,
-              colorSchemeSeed: themeNotifier.accentColor,
-            ),
+            theme: AuraFlowTheme.light(themeNotifier.accentColor),
+            darkTheme: AuraFlowTheme.dark(themeNotifier.accentColor),
             themeMode: themeNotifier.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             home: const MainShell(), 
           );

@@ -22,13 +22,14 @@ class GoalAdapter extends TypeAdapter<Goal> {
       tasks: (fields[3] as HiveList?)?.castHiveList(),
       createdAt: fields[4] as DateTime?,
       id: fields[0] as String?,
+      lastUpdatedTaskDate: fields[5] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Goal obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,7 +39,9 @@ class GoalAdapter extends TypeAdapter<Goal> {
       ..writeByte(3)
       ..write(obj.tasks)
       ..writeByte(4)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(5)
+      ..write(obj.lastUpdatedTaskDate);
   }
 
   @override

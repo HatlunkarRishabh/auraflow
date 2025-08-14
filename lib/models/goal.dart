@@ -22,12 +22,16 @@ class Goal extends HiveObject {
   @HiveField(4)
   final DateTime createdAt;
 
+  @HiveField(5)
+  DateTime? lastUpdatedTaskDate;
+
   Goal({
     required this.name,
-    this.colorHex = "FF9E9E9E", 
+    this.colorHex = "FF9E9E9E",
     HiveList<Task>? tasks,
     DateTime? createdAt,
     String? id,
+    this.lastUpdatedTaskDate,
   })  : this.tasks = tasks ?? HiveList(Hive.box<Task>('tasks')),
         this.createdAt = createdAt ?? DateTime.now(),
         this.id = id ?? const Uuid().v4();

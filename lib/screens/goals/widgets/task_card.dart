@@ -1,105 +1,277 @@
 // lib/screens/goals/widgets/task_card.dart
 import 'package:auraflow/models/task.dart';
 import 'package:auraflow/models/task_priority.dart';
+import 'package:auraflow/notifiers/goal_notifier.dart';
+import 'package:auraflow/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
-class TaskCard extends StatelessWidget {
-  const TaskCard({
-    super.key,
-    required this.task,
-    required this.onStatusChanged,
-    required this.onSubTaskStatusChanged,
-    required this.onAddSubTask,
-    required this.onDelete,
-  });
+class TaskCard extends StatefulWidget {
+  const TaskCard({super.key, required this.taskKey});
+  final dynamic taskKey;
 
-  final Task task;
-  final ValueChanged<bool> onStatusChanged;
-  final void Function(SubTask, bool) onSubTaskStatusChanged;
-  final VoidCallback onAddSubTask;
-  final VoidCallback onDelete;
+  @override
+  State<TaskCard> createState() => _TaskCardState();
+}
 
-  Widget _getPriorityIcon(TaskPriority priority, BuildContext context) {
+class _TaskCardState extends State<TaskCard> {
+  bool _isExpanded = false;
+
+  Color _getPriorityColor(TaskPriority priority) {
     switch (priority) {
       case TaskPriority.high:
-        return Icon(Icons.keyboard_double_arrow_up, color: Colors.red.shade700);
+        return Colors.red.shade400;
       case TaskPriority.medium:
-        return Icon(Icons.keyboard_arrow_up, color: Colors.orange.shade700);
+        return Colors.orange.shade600;
       case TaskPriority.low:
-        return Icon(Icons.keyboard_arrow_down, color: Colors.blue.shade700);
+        return Colors.blue.shade500;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool isTaskDone = task.isDone;
+    final tasksBox = Hive.box<Task>('tasks');
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Dismissible(
-        key: Key(task.id),
-        direction: DismissDirection.endToStart,
-        onDismissed: (_) => onDelete(),
-        background: Container(
-          color: Colors.red.shade700,
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20.0),
-          child: const Icon(Icons.delete, color: Colors.white),
-        ),
-        child: ExpansionTile(
-          leading: Checkbox(
-            value: isTaskDone,
-            onChanged: (value) => onStatusChanged(value ?? false),
-          ),
-          title: Text(
-            task.name,
-            style: TextStyle(
-              decoration: isTaskDone ? TextDecoration.lineThrough : null,
-              color: isTaskDone ? Colors.grey : theme.textTheme.bodyLarge?.color,
+    return ValueListenableBuilder(
+      valueListenable: tasksBox.listenable(),
+      builder: (context, Box<Task> box, _) {
+        final Task? currentTask = box.get(widget.taskKey);
+        if (currentTask == null) return const SizedBox.shrink();
+
+        final theme = Theme.of(context);
+        // THE FIX: Fetch into a nullable variable without the '!'
+        final customColors = theme.extension<AuraFlowCustomColors>();
+        final bool isDone = currentTask.isDone;
+
+        // THE FIX: Provide sensible default colors in case the theme extension is null.
+        final completedSurfaceColor = customColors?.completedSurface ?? Colors.grey.shade200;
+        final cardColor = theme.cardTheme.color ?? Colors.white;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            color: isDone ? completedSurfaceColor : cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDone ? Colors.transparent : theme.dividerColor.withOpacity(0.5),
             ),
           ),
-          subtitle: task.dueDate != null
-              ? Text(
-                  "Due: ${DateFormat.yMMMd().format(task.dueDate!)}",
-                  style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
-                )
-              : null,
-          trailing: _getPriorityIcon(task.priority, context),
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: Column(
+              children: [
+                _buildMainTaskTile(context, currentTask),
+                if (_isExpanded)
+                  _buildSubTaskList(context, currentTask),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMainTaskTile(BuildContext context, Task task) {
+    final notifier = context.read<GoalNotifier>();
+    final theme = Theme.of(context);
+    final customColors = theme.extension<AuraFlowCustomColors>();
+    final isDone = task.isDone;
+    
+    // THE FIX: Provide fallback colors for all custom color usages
+    final completedOnSurfaceColor = customColors?.completedOnSurface ?? Colors.grey.shade500;
+    final cardColor = theme.cardTheme.color ?? Colors.white;
+
+    return InkWell(
+      onTap: () => setState(() => _isExpanded = !_isExpanded),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
+        child: Row(
           children: [
-            for (var subTask in task.subTasks)
-              ListTile(
-                dense: true,
-                leading: Checkbox(
-                  value: subTask.isDone,
-                  onChanged: (value) => onSubTaskStatusChanged(subTask, value ?? false),
+            Checkbox(
+              value: isDone,
+              onChanged: (value) {
+                task.isDone = value ?? false;
+                notifier.updateTask(task);
+              },
+              activeColor: completedOnSurfaceColor,
+              checkColor: cardColor,
+            ),
+            Expanded(
+              child: Column(
+                spacing: 4,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.name,
+                    style: TextStyle(
+                      decoration: isDone ? TextDecoration.lineThrough : null,
+                      color: isDone ? completedOnSurfaceColor : null,
+                      decorationColor: completedOnSurfaceColor,
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 2,
+                    children: [
+                      if (task.dueDate != null)
+                        Text(
+                          "Due: ${DateFormat.yMMMd().format(task.dueDate!)}",
+                          style: TextStyle(fontSize: 12, color: theme.hintColor),
+                        ),
+                      
+                      Text(
+                        "Created: ${DateFormat.yMMMd().format(task.createdAt)}",
+                        style: TextStyle(fontSize: 12, color: theme.hintColor),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+            if (!isDone)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getPriorityColor(task.priority).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                title: Text(
-                  subTask.name,
+                child: Text(
+                  task.priority.name.toUpperCase(),
                   style: TextStyle(
-                    fontSize: 14,
-                    decoration: subTask.isDone ? TextDecoration.lineThrough : null,
-                    color: subTask.isDone ? Colors.grey : theme.textTheme.bodyMedium?.color,
+                    color: _getPriorityColor(task.priority),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
                   ),
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0),
-              child: TextButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text("Add Sub-task"),
-                onPressed: onAddSubTask,
-                style: TextButton.styleFrom(
-                  foregroundColor: theme.colorScheme.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  tooltip: "Delete Task",
+                  color: isDone ? completedOnSurfaceColor : theme.iconTheme.color,
+                  onPressed: () => _showDeleteConfirmation(context, notifier, task),
                 ),
-              ),
+                Icon(
+                  _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  color: isDone ? completedOnSurfaceColor : theme.hintColor,
+                ),
+              ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSubTaskList(BuildContext context, Task task) {
+    final notifier = context.read<GoalNotifier>();
+    final customColors = Theme.of(context).extension<AuraFlowCustomColors>();
+    final completedOnSurfaceColor = customColors?.completedOnSurface ?? Colors.grey.shade500;
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Column(
+        children: [
+          const Divider(),
+          for (var subTask in task.subTasks)
+            ListTile(
+              dense: true,
+              leading: Checkbox(
+                value: subTask.isDone,
+                onChanged: (value) {
+                  subTask.isDone = value ?? false;
+                  notifier.updateTask(task);
+                },
+                activeColor: completedOnSurfaceColor,
+                checkColor: cardColor,
+              ),
+              title: Text(
+                subTask.name,
+                style: TextStyle(
+                  decoration: subTask.isDone ? TextDecoration.lineThrough : null,
+                  color: subTask.isDone ? completedOnSurfaceColor : null,
+                  decorationColor: completedOnSurfaceColor,
+                ),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.clear, size: 20),
+                tooltip: "Delete Sub-task",
+                onPressed: () => notifier.deleteSubTask(subTask),
+              ),
+            ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text("Add Sub-task"),
+              onPressed: () => _showAddSubTaskDialog(context, notifier, task),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, GoalNotifier notifier, Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Task?"),
+        content: Text('Are you sure you want to permanently delete "${task.name}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
+            onPressed: () {
+              context.read<GoalNotifier>().deleteTask(task);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddSubTaskDialog(BuildContext context, GoalNotifier notifier, Task parentTask) {
+    final subTaskController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("New Sub-task"),
+        content: TextField(
+          controller: subTaskController,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: "Sub-task Description"),
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: const Text("Add"),
+            onPressed: () {
+              if (subTaskController.text.isNotEmpty) {
+                final newSubTask = SubTask(name: subTaskController.text);
+                notifier.addSubTaskToTask(parentTask, newSubTask);
+                Navigator.pop(context);
+              }
+            },
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,6 @@
+// lib/screens/goals/widgets/goal_card.dart
 import 'package:auraflow/models/goal.dart';
+import 'package:auraflow/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -14,65 +16,110 @@ class GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    // Parse the hex color stored in the model.
+    final theme = Theme.of(context);
+    // Use the null-aware operator '?' instead of '!' for safety.
+    final customColors = theme.extension<AuraFlowCustomColors>();
     final goalColor = Color(int.parse(goal.colorHex, radix: 16));
+    final progress = goal.progress;
+    final isCompleted = progress >= 1.0;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: colorScheme.outline.withOpacity(0.2)),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                goal.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+    // Provide default fallback colors if the extension is somehow null.
+    final completedSurfaceColor = customColors?.completedSurface ?? Colors.grey.shade200;
+    final completedOnSurfaceColor = customColors?.completedOnSurface ?? Colors.grey.shade500;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isCompleted ? completedSurfaceColor : theme.cardTheme.color,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            if (!isCompleted)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isCompleted
+                        ? completedOnSurfaceColor.withOpacity(0.2)
+                        : goalColor.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.flag,
+                    color: isCompleted ? completedOnSurfaceColor : goalColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    goal.name,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isCompleted ? completedOnSurfaceColor : null,
+                      decoration: isCompleted ? TextDecoration.lineThrough : null,
+                      decorationColor: completedOnSurfaceColor,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
-                      value: goal.progress,
-                      backgroundColor: goalColor.withOpacity(0.2),
-                      valueColor: AlwaysStoppedAnimation<Color>(goalColor),
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(3),
+                      value: progress,
+                      minHeight: 8,
+                      backgroundColor: isCompleted
+                          ? completedOnSurfaceColor.withOpacity(0.2)
+                          : goalColor.withOpacity(0.2),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isCompleted ? completedOnSurfaceColor : goalColor,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "${(goal.progress * 100).toStringAsFixed(0)}%",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Created: ${DateFormat.yMMMd().format(goal.createdAt)}",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant.withOpacity(0.7),
                 ),
+                const SizedBox(width: 12),
+                Text(
+                  "${(progress * 100).toStringAsFixed(0)}%",
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isCompleted ? completedOnSurfaceColor : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isCompleted
+                  ? "Completed: ${DateFormat.yMMMd().format(goal.lastUpdatedTaskDate ?? DateTime.now())}"
+                  : "${goal.tasks.where((t) => !t.isDone).length} tasks remaining",
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: (isCompleted
+                        ? completedOnSurfaceColor
+                        : theme.textTheme.bodySmall?.color)
+                    ?.withOpacity(0.7),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
