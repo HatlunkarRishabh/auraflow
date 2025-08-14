@@ -7,6 +7,16 @@ import 'package:hive_flutter/hive_flutter.dart';
 class GoalNotifier extends ChangeNotifier {
   final Box<Goal> _goalBox = Hive.box<Goal>('goals');
 
+  Goal? _selectedGoal;
+  Goal? get selectedGoal => _selectedGoal;
+
+  void selectGoal(Goal? goal) {
+    if (_selectedGoal != goal) {
+      _selectedGoal = goal;
+      notifyListeners();
+    }
+  }
+
   ValueListenable<Box<Goal>> get goalsListenable => _goalBox.listenable();
 
   Future<void> addGoal({required String name, required String colorHex}) async {

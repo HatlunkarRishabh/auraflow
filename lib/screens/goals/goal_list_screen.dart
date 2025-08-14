@@ -51,6 +51,8 @@ class GoalListScreen extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        // ADD THIS LINE
+        heroTag: 'goal-list-fab',
         onPressed: () => _showAddGoalDialog(context),
         tooltip: 'Add Goal',
         child: const Icon(Icons.add),

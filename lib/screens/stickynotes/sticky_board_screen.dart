@@ -60,6 +60,7 @@ class StickyBoardScreen extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
+          heroTag: 'sticky-board-fab',
         onPressed: () => _showAddOrEditNoteDialog(context),
         tooltip: 'Add Sticky Note',
         child: const Icon(Icons.add),
