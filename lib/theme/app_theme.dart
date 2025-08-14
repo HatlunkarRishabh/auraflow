@@ -40,7 +40,7 @@ class AuraFlowTheme {
     required Color completedSurfaceColor,
     required Color completedOnSurfaceColor,
   }) {
-    final textTheme = GoogleFonts.nunitoSansTextTheme(
+    final textTheme = GoogleFonts.poppinsTextTheme(
       ThemeData(brightness: brightness).textTheme,
     ).apply(
       bodyColor: onSurfaceColor.withOpacity(0.8),
