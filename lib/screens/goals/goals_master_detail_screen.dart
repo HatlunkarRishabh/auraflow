@@ -8,25 +8,19 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
-/// A master-detail layout for desktop/tablet view of Goals.
-///
-/// Displays a list of goals on the left pane and the details of the
-/// selected goal on the right pane.
+
 class GoalsMasterDetailScreen extends StatelessWidget {
   const GoalsMasterDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // We use a Consumer here to get the selectedGoal and rebuild when it changes.
     return Consumer<GoalNotifier>(
       builder: (context, goalNotifier, child) {
         final selectedGoal = goalNotifier.selectedGoal;
 
         return Row(
           children: [
-            // --- MASTER PANE (List of Goals) ---
             SizedBox(
-              // Constrain the width of the list pane.
               width: 350,
               child: ValueListenableBuilder<Box<Goal>>(
                 valueListenable: goalNotifier.goalsListenable,
@@ -39,7 +33,6 @@ class GoalsMasterDetailScreen extends StatelessWidget {
                       final goal = goals[index];
                       return GoalCard(
                         goal: goal,
-                        // When a card is tapped, we update the notifier.
                         onTap: () => goalNotifier.selectGoal(goal),
                         onDelete: () => _showDeleteGoalConfirmation(context, goalNotifier, goal)
                       );
@@ -49,15 +42,12 @@ class GoalsMasterDetailScreen extends StatelessWidget {
               ),
             ),
             const VerticalDivider(width: 1, thickness: 1),
-            // --- DETAIL PANE (Selected Goal's Details) ---
             Expanded(
               child: selectedGoal != null
-                  // If a goal is selected, show its detail screen.
                   ? GoalDetailScreen(
-                      key: ValueKey(selectedGoal.id), // Use a key to ensure it rebuilds
+                      key: ValueKey(selectedGoal.id), 
                       goal: selectedGoal,
                     )
-                  // If no goal is selected, show a placeholder.
                   : const Center(
                       child: Text("Select a goal to see its details."),
                     ),
