@@ -45,6 +45,7 @@ class GoalListScreen extends StatelessWidget {
                     ),
                   );
                 },
+                onDelete: () => _showDeleteGoalConfirmation(context, goalNotifier, goal)
               );
             },
           );
@@ -57,6 +58,37 @@ class GoalListScreen extends StatelessWidget {
         tooltip: 'Add Goal',
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  void _showDeleteGoalConfirmation(BuildContext context, GoalNotifier notifier, Goal goal) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Goal?"),
+          content: Text(
+            'Are you sure you want to permanently delete "${goal.name}"?\n\nThis will also delete all of its tasks. This action cannot be undone.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text("Delete"),
+              onPressed: () {
+                notifier.deleteGoal(goal);
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Goal "${goal.name}" deleted.')),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 

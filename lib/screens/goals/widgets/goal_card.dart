@@ -9,10 +9,12 @@ class GoalCard extends StatelessWidget {
     super.key,
     required this.goal,
     required this.onTap,
+    required this.onDelete,
   });
 
   final Goal goal;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +78,24 @@ class GoalCard extends StatelessWidget {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      onDelete(); // Call the passed-in delete function
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: ListTile(
+                        leading: Icon(Icons.delete_outline, color: Colors.red),
+                        title: Text('Delete Goal', style: TextStyle(color: Colors.red)),
+                      ),
+                    ),
+                  ],
+                  icon: Icon(Icons.more_vert, color: theme.hintColor),
                 ),
               ],
             ),

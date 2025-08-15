@@ -50,13 +50,13 @@ class _MainShellState extends State<MainShell> {
         child: widgetOptions.elementAt(_selectedIndex),
       ),
       // The mobile layout gets its own FAB for adding items.
-      floatingActionButton: _selectedIndex < 2 // Only show FAB for Goals and Stickies
-          ? FloatingActionButton(
-              heroTag: 'mobile-fab',
-              onPressed: () => showQuickAddDialog(context, _selectedIndex),
-              child: const Icon(Icons.add),
-            )
-          : null,
+      // floatingActionButton: _selectedIndex < 2 // Only show FAB for Goals and Stickies
+      //     ? FloatingActionButton(
+      //         heroTag: 'mobile-fab',
+      //         onPressed: () => showQuickAddDialog(context, _selectedIndex),
+      //         child: const Icon(Icons.add),
+      //       )
+      //     : null,
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
